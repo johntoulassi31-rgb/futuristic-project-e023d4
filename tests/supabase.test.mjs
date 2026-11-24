@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
-const initial=await read('../supabase/migrations/20261124212000_mentoratplus_initial_schema.sql');
-const optimize=await read('../supabase/migrations/20261124213000_optimize_library_rls_and_indexes.sql');
+const initial=await read('../supabase/migrations/20261124202102_mentoratplus_initial_schema.sql');
+const optimize=await read('../supabase/migrations/20261124202122_optimize_library_rls_and_indexes.sql');
 const edge=await read('../supabase/functions/mentoratplus-api/index.ts');
 const client=await read('../src/lib/supabase.js');
 const api=await read('../src/lib/api.js');
