@@ -1,57 +1,100 @@
 # Mentoratplus
 
-Mentoratplus est un assistant de projets pédagogique en français destiné aux étudiants et aux enseignants. Il transforme une idée en objectif et en étapes réalisables avec l’IA, puis permet de suivre les étapes et d’exporter le plan en texte. Des exemples interdisciplinaires et des fiches méthodologiques accompagnent la découverte.
+Mentoratplus est une plateforme pédagogique francophone pour étudiants et enseignants. Elle associe création de projets, tuteur IA Mentora, cours privés, quiz, parcours métier et bibliothèque universitaire partagée.
 
-## Technologies
+## Architecture
 
-React 19, Vite, Lucide, CSS responsive, Hono sur Netlify Server, OpenAI via Netlify AI Gateway, Netlify Database et Drizzle ORM (version beta).
+- **Frontend :** React 19, Vite, Lucide et CSS responsive.
+- **Authentification :** Supabase Auth (e-mail / mot de passe).
+- **Données :** Supabase PostgreSQL avec Row Level Security (RLS).
+- **API privée et IA :** Supabase Edge Function `mentoratplus-api`.
+- **IA :** OpenAI `gpt-5.2`, appelée uniquement depuis la fonction Supabase.
+- **Application Android :** Capacitor, frontend intégré dans l'APK/AAB et appels réseau vers Supabase.
+
+Le navigateur et l'application Android ne contiennent que l'URL du projet et la clé Supabase **publishable**. Aucune clé secrète Supabase ni clé OpenAI ne doit être ajoutée au code client.
 
 ## Développement local
 
-Utiliser Node.js 24 ou supérieur, puis `npm install`. Avec le projet Netlify lié et la CLI disponible, lancer `netlify dev --port 8889`. Le frontend utilise Vite et les routes `/api/*` sont servies par Netlify Server. Une première mise en production est nécessaire pour activer AI Gateway. Aucun secret ne doit être ajouté au code ou au navigateur.
+Utiliser Node.js 24 ou supérieur, puis :
 
-`npm run build` prépare le frontend dans `dist`. Le déploiement Netlify détecte le serveur et applique les migrations présentes dans `netlify/database/migrations`. Après une modification de `db/schema.ts`, générer une migration avec `npx drizzle-kit generate --name description_de_la_modification` ; ne pas appliquer les migrations manuellement.
+```bash
+npm install
+npm run dev
+```
 
-## Fonctionnement
+Le frontend utilise le client `@supabase/supabase-js`. Le fichier `src/lib/supabase.js` contient l'URL du projet et sa clé publishable. Les appels métier protégés passent par `supabase.functions.invoke('mentoratplus-api')`.
 
-Les projets sont isolés par un identifiant aléatoire conservé dans un cookie sécurisé HttpOnly. Cet espace personnel n’est pas un compte utilisateur et ne se synchronise pas entre appareils. Effacer ce cookie fait perdre l’accès à l’espace. Les exemples sont identifiés et ne modifient pas les projets personnels. Les plans de l’IA doivent être relus et vérifiés. Ne pas y inclure d’informations personnelles d’élèves.
+Pour vérifier le frontend et les règles de sécurité documentées :
 
+```bash
+npm run check:server
+npm test
+npm run build
+```
 
-## Apprentissage et parcours métier
+La fonction Edge est dans `supabase/functions/mentoratplus-api/index.ts`. Son déploiement et les migrations SQL sont conservés dans le dépôt.
 
-Mentora accepte un cours collé ou un fichier `.txt` (30 à 24 000 caractères). Les explications, questions-réponses, quiz à cinq questions et simulations de journées types utilisent la connexion IA existante avec `gpt-5.2`, sans clé à saisir dans le navigateur. Les réponses sont envoyées en NDJSON et enregistrées avant affichage. Le PDF n’est pas pris en charge.
+## Supabase : projet et sécurité
 
-L’Académie propose cinq cours de finance et gestion avec exercices corrigés. La fin de lecture est déclarée par la personne : elle valide la compétence associée dans les parcours analyste financier, comptable ou contrôleur de gestion. Ces validations sont pédagogiques et ne sont pas des certifications. L’accueil montre la progression du métier sélectionné. Le bouton d’ajout au portfolio enregistre un instantané du parcours ; un nouvel ajout actualise cet instantané. Une exportation texte est disponible.
+Projet utilisé : `sxarzvozpjyujmyvyqeo` (région eu-west-1).
 
-Les cours privés, réponses, quiz, trente derniers scores par cours, vingt derniers échanges, progression et portfolio sont stockés dans Netlify Database, filtrés par propriétaire. Ils ne sont pas stockés dans localStorage. Le cookie d’espace existant est conservé pour préserver l’accès aux anciens projets. La bibliothèque universitaire partagée utilise une table séparée : elle ne rend jamais publics les cours privés importés dans Mentora. La migration correspondante est appliquée par la plateforme au déploiement.
+Migrations versionnées :
+- `supabase/migrations/20261124212000_mentoratplus_initial_schema.sql`
+- `supabase/migrations/20261124213000_optimize_library_rls_and_indexes.sql`
 
-Les tests de routes avec base et IA simulées se lancent avec `node --experimental-vm-modules --test tests/learning.test.mjs`.
+Tables :
+- `profiles` : profil utilisateur et rôle ;
+- `projects` : projets créés ;
+- `learning_spaces` : parcours et progression ;
+- `courses` : cours privés, explications, quiz, tentatives et échanges ;
+- `academic_resources` : bibliothèque partagée et modération.
 
+Toutes les tables activent RLS. Les projets, cours et parcours sont limités au compte propriétaire. Les ressources publiées sont consultables publiquement ; les propositions en attente ou refusées ne sont pas visibles dans la bibliothèque. Les propositions et les décisions de modération passent par la fonction Edge, qui vérifie le JWT Supabase et le rôle enregistré dans `profiles`.
+
+Le rôle est défini par le déclencheur SQL à l'inscription. Le formulaire public ne peut attribuer que les rôles étudiant ou enseignant. Le rôle administrateur ne peut pas être choisi par l'utilisateur et doit être attribué par une opération d'administration sécurisée.
+
+## Configuration nécessaire dans Supabase
+
+1. Dans **Authentication → URL Configuration**, définir le Site URL et ajouter l'URL finale du frontend dans les Redirect URLs. Ajouter aussi l'URL locale de développement si nécessaire.
+2. Dans **Edge Functions → Secrets**, ajouter `OPENAI_API_KEY` avec la clé API OpenAI du propriétaire du compte. Ne jamais la mettre dans GitHub, dans le frontend ou dans Capacitor.
+3. Vérifier que le schéma `public` est exposé à la Data API et que les autorisations SQL de la migration sont conservées.
+4. Créer un compte étudiant ou enseignant via l'application. Si la confirmation e-mail est activée, confirmer l'adresse avant la connexion.
+5. Pour attribuer le premier rôle administrateur, après inscription du compte concerné, exécuter dans le SQL Editor une commande ciblée de ce type en remplaçant l'adresse :
+   `UPDATE public.profiles SET role = 'admin' WHERE email = 'adresse-du-compte';`
+   Ne jamais autoriser cette modification depuis l'interface publique.
+
+La fonction Edge est déployée avec la vérification JWT de la passerelle désactivée afin de prendre en charge la clé publishable moderne ; **elle vérifie elle-même le jeton de session avec Supabase Auth avant chaque opération**. Elle utilise une clé secrète côté serveur pour les opérations privilégiées. Ne pas retirer cette vérification manuelle.
+
+## Fonctionnalités
+
+### Projets
+Les utilisateurs connectés peuvent transformer une idée en plan d'action, suivre les étapes et exporter le résultat en texte. Les projets sont isolés par propriétaire.
+
+### Mentora
+Mentora accepte un cours collé ou un fichier `.txt` (30 à 24 000 caractères), produit une explication, répond aux questions et crée un quiz de cinq questions. Les réponses et scores sont conservés dans le compte. Le PDF n'est pas pris en charge. Les réponses IA doivent être vérifiées avec les supports et références pédagogiques : les consignes de vérification réduisent les erreurs sans garantir leur absence.
+
+### Académie et parcours métier
+L'Académie propose des cours de finance et gestion avec exercices corrigés. Les validations de lecture alimentent les parcours analyste financier, comptable et contrôleur de gestion. Ces validations sont pédagogiques et ne sont pas des certifications.
+
+### Bibliothèque universitaire
+Les étudiants et visiteurs consultent les ressources publiées et filtrent par pays, établissement, filière, niveau, matière et mot-clé. Les enseignants proposent des ressources qui restent en attente jusqu'à leur validation. Les administrateurs peuvent approuver ou refuser une ressource et signaler une source officielle après vérification effective. Une simple URL ne suffit pas. Les cours importés dans Mentora restent privés et séparés de cette bibliothèque.
+
+Le catalogue académique actuel est une taxonomie de départ, non une liste exhaustive de formations ni un référentiel officiel. Les programmes nationaux devront être enrichis et contrôlés à partir de documents institutionnels datés.
+
+## Hébergement du frontend
+
+Supabase fournit le backend mais n'héberge pas directement l'application React statique. Le dépôt GitHub actuel est privé. Le choix du service de publication du frontend doit donc tenir compte de cette confidentialité : GitHub Pages pour ce dépôt peut nécessiter un plan GitHub compatible ou le rendre public ; un hébergeur statique externe peut conserver le dépôt privé. Ne pas rendre le dépôt public sans autorisation explicite.
 
 ## Application Android (APK et AAB)
 
-Le projet Android est préparé automatiquement par GitHub Actions depuis Capacitor. Depuis l'onglet **Actions**, lancer le workflow **Build Android APK and AAB** (ou attendre son déclenchement après une modification concernée). Les fichiers générés sont disponibles dans les artefacts du workflow pendant 30 jours.
+Capacitor embarque désormais le frontend compilé dans l'application ; le backend est Supabase. L'application nécessite Internet pour l'authentification, les données et les réponses de Mentora. Le workflow Android produit un APK de test. Pour signer une version de distribution, configurer dans **Settings → Secrets and variables → Actions** :
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
 
-Le workflow produit toujours un APK de test. Pour obtenir les fichiers de version signés destinés à la distribution, configurer dans **Settings → Secrets and variables → Actions** les quatre secrets suivants :
+Conserver une copie sécurisée hors ligne du keystore et réutiliser la même clé pour les mises à jour. Ne jamais déposer le keystore ni ses mots de passe dans le dépôt.
 
-- `ANDROID_KEYSTORE_BASE64` : contenu Base64 du fichier keystore de publication.
-- `ANDROID_KEYSTORE_PASSWORD` : mot de passe du keystore.
-- `ANDROID_KEY_ALIAS` : alias de la clé.
-- `ANDROID_KEY_PASSWORD` : mot de passe de la clé.
+## Migration des anciennes données
 
-Conserver une copie hors ligne et sécurisée du keystore. La même clé doit être réutilisée pour toutes les mises à jour de l'application. Ne jamais ajouter le keystore ni ses mots de passe au dépôt.
-
-**Important :** la configuration Capacitor actuelle ouvre le site Netlify distant afin de conserver les routes API et le cookie sécurisé existants. L'application nécessite donc une connexion Internet. Le workflow construit l'enveloppe Android ; il ne transforme pas encore le backend Netlify en backend Supabase et ne rend pas l'application utilisable hors ligne.
-
-
-## Comptes et profils pédagogiques
-
-Les inscriptions publiques proposent les profils étudiant et enseignant. Les mots de passe sont hachés avec scrypt et les sessions utilisent un cookie HttpOnly, Secure et SameSite=Lax ; les données des anciens espaces invités sont transférées au compte lors de la création du compte. Les rôles administrateur ne sont jamais attribuables depuis le formulaire public et doivent être provisionnés par une procédure réservée à l'exploitation. Les sessions durent 30 jours. La vérification d'adresse e-mail et la récupération autonome de mot de passe restent à mettre en place avant une ouverture à grande échelle.
-
-Le profil pédagogique enregistre le pays, l'établissement, la filière, le niveau et le rôle. Le premier catalogue propose une taxonomie évolutive, avec un démarrage au Togo et des domaines universitaires transversaux. Les établissements et matières listés sont des points de départ de navigation, pas une déclaration d'exhaustivité ni des maquettes officielles validées. Les contenus réglementaires et les programmes officiels devront être accompagnés de références institutionnelles et d'une date de vérification avant d'être signalés comme officiels.
-
-Mentora reçoit le contexte académique du compte et utilise un niveau de raisonnement renforcé, une consigne de vérification des calculs et de relecture linguistique, ainsi que des règles explicites contre l'invention de références et de faits. Cela réduit les erreurs attendues sans garantir l'absence totale d'erreurs ; les réponses doivent rester vérifiées par les supports pédagogiques et les sources officielles.
-
-## Bibliothèque universitaire partagée\n\nLa bibliothèque possède sa propre table `academic_resources`, séparée des cours personnels. Les étudiants et visiteurs peuvent consulter les ressources publiées et filtrer par pays, établissement, filière, niveau, matière ou mot-clé. Les comptes enseignants peuvent proposer un cours (titre, résumé, contenu, contexte académique et source) ; toute proposition reste en attente jusqu’à la décision d’un administrateur. Chaque enseignant ne voit que ses propres propositions dans son espace de suivi. L’administrateur consulte les propositions en attente, les approuve ou les refuse. Il peut signaler une source comme officielle uniquement après l’avoir contrôlée lui-même ; une simple URL ne suffit pas.\n\nLa publication et la modération sont contrôlées côté serveur selon le rôle du compte. Les ressources refusées ou en attente ne sont jamais exposées dans la bibliothèque publique. Les contenus publiés restent des contributions pédagogiques et ne sont pas assimilés à des programmes officiels. Le catalogue pays/établissements/filières est évolutif et doit être enrichi avec des références institutionnelles vérifiées.\n\nLes tests automatisés sont lancés avec `npm test`. Le workflow GitHub Actions vérifie les tests et la compilation de production à chaque push sur `main`.
-
-Pour créer le premier administrateur : créer d'abord un compte normal, définir temporairement une variable Netlify `MENTORATPLUS_ADMIN_SETUP_TOKEN` avec une valeur longue et aléatoire, puis appeler une seule fois `POST /api/auth/bootstrap-admin` avec l'en-tête `x-admin-setup-token` et le JSON `{"email":"adresse-du-compte" }`. La route refuse toute promotion dès qu'un administrateur existe. Retirer ensuite la variable Netlify. Ne jamais exposer ce jeton dans le frontend ou dans le dépôt.
+Le projet Supabase utilisé pour cette migration était vide avant l'installation du nouveau schéma. Les anciens comptes, cours et progressions enregistrés dans l'ancienne base Netlify ne sont donc pas importés automatiquement. Il faut exporter les données de cette base et effectuer une migration contrôlée si leur conservation est souhaitée. Les anciens mots de passe hachés ne sont pas directement réutilisables par Supabase Auth : les utilisateurs devront créer un nouveau mot de passe ou suivre une procédure de réinitialisation.
