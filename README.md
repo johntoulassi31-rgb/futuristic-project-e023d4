@@ -39,8 +39,8 @@ La fonction Edge est dans `supabase/functions/mentoratplus-api/index.ts`. Son d�
 Projet utilisé : `sxarzvozpjyujmyvyqeo` (région eu-west-1).
 
 Migrations versionnées :
-- `supabase/migrations/20261124212000_mentoratplus_initial_schema.sql`
-- `supabase/migrations/20261124213000_optimize_library_rls_and_indexes.sql`
+- `supabase/migrations/20261124202102_mentoratplus_initial_schema.sql`
+- `supabase/migrations/20261124202122_optimize_library_rls_and_indexes.sql`
 
 Tables :
 - `profiles` : profil utilisateur et rôle ;
