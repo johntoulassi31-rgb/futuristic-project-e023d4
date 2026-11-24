@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {BookOpen, GraduationCap, Save, Sparkles} from 'lucide-react';
 import {countries, studyFields, studyLevels} from '../shared/curriculum.js';
+import {api} from './lib/api.js';
 
 const initial={country:'TG',institution:'Université de Lomé',field:'gestion-marketing',level:'licence-1',role:'student'};
 export default function LearningProfile({profile,onSaved}){
@@ -10,7 +11,7 @@ export default function LearningProfile({profile,onSaved}){
  const country=countries.find(x=>x.id===form.country)||countries[0];
  const field=studyFields.find(x=>x.id===form.field)||studyFields[0];
  function changeCountry(id){const next=countries.find(x=>x.id===id);setForm(f=>({...f,country:id,institution:next.institutions[0],customInstitution:''}));}
- async function save(e){e.preventDefault();setBusy(true);setError('');setSuccess('');try{const r=await fetch('/api/learning/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});const data=await r.json();if(!r.ok)throw Error(data.error||'Impossible d’enregistrer ce profil.');onSaved?.(data);setSuccess('Votre parcours pédagogique est enregistré. Mentora adaptera désormais ses réponses à ces choix.');}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function save(e){e.preventDefault();setBusy(true);setError('');setSuccess('');try{const data=await api('/api/learning/profile','PATCH',form);onSaved?.(data);setSuccess('Votre parcours pédagogique est enregistré. Mentora adaptera désormais ses réponses à ces choix.');}catch(e){setError(e.message)}finally{setBusy(false)}}
  return <section className="learn-panel academic-profile">
   <div className="panel-heading"><GraduationCap size={21}/><div><h3>Mon parcours d’études</h3><p>Personnalisez les cours et les réponses de Mentora selon votre situation.</p></div></div>
   <form onSubmit={save}>
