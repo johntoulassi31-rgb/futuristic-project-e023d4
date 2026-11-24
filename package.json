@@ -9,22 +9,18 @@
     "cap:sync": "cap sync android",
     "android:open": "cap open android",
     "test": "node --experimental-vm-modules --test tests/learning.test.mjs",
-    "check:server": "node --check netlify/server/index.mjs && node --check netlify/server/auth.mjs && node --check netlify/server/learning.mjs"
+    "check:server": "node --check supabase/functions/mentoratplus-api/index.ts"
   },
   "dependencies": {
-    "@netlify/database": "latest",
-    "drizzle-orm": "beta",
-    "hono": "^4.7.0",
     "lucide-react": "^0.468.0",
-    "openai": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "@capacitor/android": "8.6.2",
-    "@capacitor/core": "8.6.2"
+    "@capacitor/core": "8.6.2",
+    "@supabase/supabase-js": "2.95.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "drizzle-kit": "beta",
     "typescript": "^5.7.0",
     "vite": "^6.1.0",
     "@capacitor/cli": "8.6.2"
