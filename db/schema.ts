@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, jsonb, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, jsonb, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 export const projects = pgTable('projects', {
  id: uuid().defaultRandom().primaryKey(),
  owner: text().notNull(),
@@ -28,3 +28,19 @@ export const courses = pgTable('courses', {
  messages: jsonb().$type<{question:string;answer:string}[]>().notNull().default([]),
  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const users = pgTable('users', {
+ id: uuid().defaultRandom().primaryKey(),
+ email: text().notNull(),
+ passwordHash: text('password_hash').notNull(),
+ displayName: text('display_name').notNull(),
+ role: text().notNull(),
+ createdAt: timestamp('created_at').defaultNow().notNull(),
+}, table => [uniqueIndex('users_email_unique').on(table.email)]);
+export const sessions = pgTable('sessions', {
+ id: uuid().defaultRandom().primaryKey(),
+ userId: uuid('user_id').notNull().references(()=>users.id,{onDelete:'cascade'}),
+ tokenHash: text('token_hash').notNull(),
+ expiresAt: timestamp('expires_at').notNull(),
+ createdAt: timestamp('created_at').defaultNow().notNull(),
+}, table => [uniqueIndex('sessions_token_hash_unique').on(table.tokenHash)]);
