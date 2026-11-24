@@ -24,7 +24,7 @@ async function harness(){
   'drizzle-orm':{eq:(field,value)=>row=>row[field]===value,and:(...ps)=>row=>ps.every(p=>p(row)),desc:x=>x},
   'hono/streaming':{stream},openai:{default:OpenAI},'../../db/index.ts':{db},'../../db/schema.ts':{courses:courseTable,learningSpaces:spaceTable,academicResources:resourceTable},'../../shared/academy.js':{academy,careers},'../../shared/curriculum.js':{countries,studyFields,studyLevels},
  };
- const context=vm.createContext({console,Date,Set,JSON,Error,Number,Object,Array});
+ const context=vm.createContext({console,Date,Set,JSON,Error,Number,Object,Array,URL});
  const module=new vm.SourceTextModule(await readFile(new URL('../netlify/server/learning.mjs',import.meta.url),'utf8'),{context});
  await module.link(name=>{const values=bindings[name];assert.ok(values,`Import inattendu : ${name}`);return new vm.SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value)},{context})});await module.evaluate();
  const app=new Hono();app.use('/api/*',async(c,next)=>{const owner=c.req.header('x-test-owner')||'alice';const role=c.req.header('x-test-role');c.set('owner',owner);c.set('user',role?{id:owner+'-id',displayName:'Utilisateur test',role}:null);await next()});module.namespace.registerLearning(app);
