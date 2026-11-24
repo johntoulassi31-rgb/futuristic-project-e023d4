@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {Hono} from 'hono';
 import {stream} from 'hono/streaming';
 import {academy,careers,careerProgress} from '../shared/academy.js';
+import {countries,studyFields,studyLevels} from '../shared/curriculum.js';
 
 // Isolate route behavior from infrastructure: no database writes or provider calls.
 async function harness(){
@@ -13,7 +14,7 @@ async function harness(){
  const match=(r,p)=>!p||p(r);
  const db={
   select(){let table,predicate;const q={from(t){table=t;return q},where(p){predicate=p;return q},orderBy(){return q},limit(){return q},for(){return q},then(ok,no){return Promise.resolve(structuredClone(rows[table.name].filter(r=>match(r,predicate)))).then(ok,no)}};return q},
-  insert(t){return {values(values){const q={onConflictDoNothing(){if(!rows[t.name].some(r=>r.owner===values.owner))rows[t.name].push({career:null,completed:[],portfolio:[],day:'',...values});return Promise.resolve()},returning(){const row={id:`00000000-0000-4000-8000-${String(++nextId).padStart(12,'0')}`,explanation:'',quiz:null,attempts:[],messages:[],createdAt:new Date().toISOString(),...values};rows[t.name].push(row);return Promise.resolve([structuredClone(row)])}};return q}}},
+  insert(t){return {values(values){const q={onConflictDoNothing(){if(!rows[t.name].some(r=>r.owner===values.owner))rows[t.name].push({career:null,completed:[],portfolio:[],day:'',profile:{country:'TG',institution:'Université de Lomé',field:'gestion-marketing',level:'licence-1',role:'student'},...values});return Promise.resolve()},returning(){const row={id:`00000000-0000-4000-8000-${String(++nextId).padStart(12,'0')}`,explanation:'',quiz:null,attempts:[],messages:[],createdAt:new Date().toISOString(),...values};rows[t.name].push(row);return Promise.resolve([structuredClone(row)])}};return q}}},
   update(t){return {set(values){let predicate;const perform=()=>{const updated=[];for(const r of rows[t.name])if(match(r,predicate)){Object.assign(r,structuredClone(values));updated.push(structuredClone(r))}return updated};const q={where(p){predicate=p;return q},returning(){return Promise.resolve(perform())},then(ok,no){return Promise.resolve(perform()).then(ok,no)}};return q}}},
   transaction(fn){return fn(db)},
  };
@@ -21,7 +22,7 @@ async function harness(){
  class OpenAI {constructor(){this.chat={completions:{create:async()=>({choices:[{message:{content:JSON.stringify(invalidAI?{quiz:[{question:'invalide'}]}:{text:'Une réponse pédagogique.',quiz:Array.from({length:5},(_,i)=>({question:`Question ${i+1}`,options:['A','B','C','D'],answer:i%4,explanation:'Voici la correction.'}))})}}]})}}}}
  const bindings={
   'drizzle-orm':{eq:(field,value)=>row=>row[field]===value,and:(...ps)=>row=>ps.every(p=>p(row)),desc:x=>x},
-  'hono/streaming':{stream},openai:{default:OpenAI},'../../db/index.ts':{db},'../../db/schema.ts':{courses:courseTable,learningSpaces:spaceTable},'../../shared/academy.js':{academy,careers},
+  'hono/streaming':{stream},openai:{default:OpenAI},'../../db/index.ts':{db},'../../db/schema.ts':{courses:courseTable,learningSpaces:spaceTable},'../../shared/academy.js':{academy,careers},'../../shared/curriculum.js':{countries,studyFields,studyLevels},
  };
  const context=vm.createContext({console,Date,Set,JSON,Error,Number,Object,Array});
  const module=new vm.SourceTextModule(await readFile(new URL('../netlify/server/learning.mjs',import.meta.url),'utf8'),{context});
@@ -71,4 +72,14 @@ test('Académie, métier et portfolio : validation idempotente, instantané et i
  const bob=(await call('/api/learning',undefined,'bob')).payload.space;assert.equal(bob.career,null);assert.equal(bob.completed.length,0);assert.equal(bob.portfolio.length,0);
  const day=(await call('/api/learning/day',{})).payload.result;assert.equal(day.career,'comptable');assert.ok(day.day);
  await call('/api/learning',{career:'analyste-financier'},'alice','PATCH');assert.equal((await call('/api/learning')).payload.space.day,'');
+});
+
+test('Profil académique : validation, persistance et isolation',async()=>{
+ const {call}=await harness();
+ const profile={country:'TG',institution:'Université de Lomé',field:'gestion-marketing',level:'licence-2',role:'student'};
+ const saved=await call('/api/learning/profile',profile,'alice','PATCH');
+ assert.equal(saved.status,200);assert.equal(saved.payload.profile.level,'licence-2');
+ assert.equal((await call('/api/learning')).payload.space.profile.level,'licence-2');
+ assert.equal((await call('/api/learning/profile',{...profile,level:'niveau-inventé'},'alice','PATCH')).status,400);
+ assert.equal((await call('/api/learning',undefined,'bob')).payload.space.profile.level,'licence-1');
 });
