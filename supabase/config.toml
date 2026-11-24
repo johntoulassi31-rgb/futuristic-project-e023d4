@@ -1,0 +1,4 @@
+project_id = "sxarzvozpjyujmyvyqeo"
+
+[functions.mentoratplus-api]
+verify_jwt = false
