@@ -28,8 +28,8 @@ async function harness(){
  const module=new vm.SourceTextModule(await readFile(new URL('../netlify/server/learning.mjs',import.meta.url),'utf8'),{context});
  await module.link(name=>{const values=bindings[name];assert.ok(values,`Import inattendu : ${name}`);return new vm.SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value)},{context})});await module.evaluate();
  const app=new Hono();app.use('/api/*',async(c,next)=>{const owner=c.req.header('x-test-owner')||'alice';const role=c.req.header('x-test-role');c.set('owner',owner);c.set('user',role?{id:owner+'-id',displayName:'Utilisateur test',role}:null);await next()});module.namespace.registerLearning(app);
- async function call(path,body,owner='alice',method=body===undefined?'GET':'POST'){
-  const r=await app.request(path,{method,headers:{'Content-Type':'application/json','x-test-owner':owner},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ async function call(path,body,owner='alice',method=body===undefined?'GET':'POST',role='student'){
+  const r=await app.request(path,{method,headers:{'Content-Type':'application/json','x-test-owner':owner,'x-test-role':role},...(body===undefined?{}:{body:JSON.stringify(body)})});
   const text=await r.text();const payload=r.headers.get('content-type')?.includes('ndjson')?JSON.parse(text.trim().split('\n').at(-1)):JSON.parse(text);return {status:r.status,payload};
  }
  return {call,rows,setInvalidAI:value=>{invalidAI=value}};
