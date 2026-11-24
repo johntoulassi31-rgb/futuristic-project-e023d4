@@ -53,3 +53,5 @@ Le profil pédagogique enregistre le pays, l'établissement, la filière, le niv
 Mentora reçoit le contexte académique du compte et utilise un niveau de raisonnement renforcé, une consigne de vérification des calculs et de relecture linguistique, ainsi que des règles explicites contre l'invention de références et de faits. Cela réduit les erreurs attendues sans garantir l'absence totale d'erreurs ; les réponses doivent rester vérifiées par les supports pédagogiques et les sources officielles.
 
 Les tests automatisés sont lancés avec `npm test`. Le workflow GitHub Actions vérifie les tests et la compilation de production à chaque push sur `main`.
+
+Pour créer le premier administrateur : créer d'abord un compte normal, définir temporairement une variable Netlify `MENTORATPLUS_ADMIN_SETUP_TOKEN` avec une valeur longue et aléatoire, puis appeler une seule fois `POST /api/auth/bootstrap-admin` avec l'en-tête `x-admin-setup-token` et le JSON `{"email":"adresse-du-compte" }`. La route refuse toute promotion dès qu'un administrateur existe. Retirer ensuite la variable Netlify. Ne jamais exposer ce jeton dans le frontend ou dans le dépôt.
