@@ -4,16 +4,13 @@ import {academy,careers,careerProgress} from '../shared/academy.js';
 import LearningProfile from './LearningProfile.jsx';
 import AcademicLibrary from './AcademicLibrary.jsx';
 export const learningPages={mentora:'Mentora',quiz:'Quiz',academy:'Académie',career:'Jumeau de carrière',portfolio:'Portfolio',library:'Bibliothèque'};
-async function request(path,body,method='POST'){
- const r=await fetch(path,{method,headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
- if(!r.ok){const d=await r.json().catch(()=>({}));throw Error(d.error||'Action indisponible. Réessayez.');}
- if(r.headers.get('content-type')?.includes('ndjson')){const reader=r.body.getReader(),decoder=new TextDecoder();let buffer='',result;for(;;){const {done,value}=await reader.read();buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=buffer.split('\n');buffer=lines.pop();for(const l of lines){if(!l.trim())continue;const e=JSON.parse(l);if(e.error)throw Error(e.error);if(e.result)result=e.result;}if(done)break;}if(!result)throw Error('La connexion a été interrompue. Rechargez votre espace avant de réessayer.');return result;}
- return r.json();
-}
+import {api, supabase} from './lib/api.js';
+async function request(path,body,method='POST'){return api(path,method,body);}
+
 export default function Learning({page,navigate}){
  const [data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(''),[courseId,setCourseId]=useState(''),[title,setTitle]=useState(''),[content,setContent]=useState(''),[question,setQuestion]=useState(''),[lesson,setLesson]=useState('bilan'),[answers,setAnswers]=useState({}),[result,setResult]=useState(null),[message,setMessage]=useState('');
  async function load(){setError('');try{const d=await request('/api/learning',undefined,'GET');setData(d);setCourseId(id=>d.courses.some(c=>c.id===id)?id:d.courses[0]?.id||'');}catch(e){setError(e.message)}}
- useEffect(()=>{load()},[]);
+ useEffect(()=>{load();const refresh=()=>load();window.addEventListener('mentoratplus-auth-changed',refresh);return()=>window.removeEventListener('mentoratplus-auth-changed',refresh)},[]);
  async function run(key,fn){setBusy(key);setError('');setMessage('');try{await fn()}catch(e){setError(e.message)}finally{setBusy('')}}
  const course=data?.courses.find(c=>c.id===courseId),state=data?.space,progress=careerProgress(state),active=academy.find(x=>x.id===lesson);
  function updateSpace(s){setData(d=>({...d,space:s}))}
