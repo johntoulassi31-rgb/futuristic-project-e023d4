@@ -8,8 +8,8 @@
     "build": "vite build",
     "cap:sync": "cap sync android",
     "android:open": "cap open android",
-    "test": "node --experimental-vm-modules --test tests/learning.test.mjs",
-    "check:server": "node --check supabase/functions/mentoratplus-api/index.ts"
+    "test": "node --test tests/supabase.test.mjs",
+    "check:server": "node --check src/lib/api.js && node --check src/lib/supabase.js"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
