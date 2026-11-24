@@ -24,3 +24,19 @@
 .profile-subjects small{padding:6px 9px;border-radius:20px;background:#fff;border:1px solid #e4dfed;color:#786d89;font-size:10px}
 .academic-profile .primary{display:inline-flex;align-items:center;gap:9px}
 @media(max-width:600px){.profile-grid{grid-template-columns:1fr}.academic-profile{padding:18px}}
+
+.account-area{display:flex;align-items:center;gap:8px;position:relative}
+.account-action,.account-register{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 11px;border-radius:8px;border:1px solid #e4dfeb;background:#fff;color:#6e6380;font-size:11px;white-space:nowrap}
+.account-register{background:#75668f;border-color:#75668f;color:#fff}
+.account-identity{display:flex;align-items:center;gap:8px;color:#716681;font-size:11px}
+.account-identity span{display:flex;flex-direction:column;gap:3px}
+.account-identity small{font-size:9px;color:#958ba2}
+.account-overlay{z-index:1000}
+.account-modal{max-width:470px}
+.account-modal form{display:grid;gap:13px;margin-top:20px}
+.account-modal form label{display:grid;gap:7px;font-size:12px;font-weight:600;color:#625970}
+.account-modal input,.account-modal select{width:100%;padding:12px;border:1px solid #e2deea;border-radius:7px;background:#fff;color:#514960;font:inherit;font-size:13px}
+.account-modal label small{font-weight:400;color:#8a8196}
+.account-switch{font-size:12px!important;text-align:center;margin-top:17px!important}
+.account-switch button{border:0;background:none;color:#75668f;font:inherit;font-weight:700;text-decoration:underline}
+@media(max-width:760px){.account-register{padding:8px;font-size:0}.account-register svg{width:17px;height:17px}.account-action{padding:8px;font-size:10px}.account-identity{display:none}.header-actions{gap:7px}}
