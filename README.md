@@ -42,3 +42,14 @@ Le workflow produit toujours un APK de test. Pour obtenir les fichiers de versio
 Conserver une copie hors ligne et sécurisée du keystore. La même clé doit être réutilisée pour toutes les mises à jour de l'application. Ne jamais ajouter le keystore ni ses mots de passe au dépôt.
 
 **Important :** la configuration Capacitor actuelle ouvre le site Netlify distant afin de conserver les routes API et le cookie sécurisé existants. L'application nécessite donc une connexion Internet. Le workflow construit l'enveloppe Android ; il ne transforme pas encore le backend Netlify en backend Supabase et ne rend pas l'application utilisable hors ligne.
+
+
+## Comptes et profils pédagogiques
+
+Les inscriptions publiques proposent les profils étudiant et enseignant. Les mots de passe sont hachés avec scrypt et les sessions utilisent un cookie HttpOnly, Secure et SameSite=Lax ; les données des anciens espaces invités sont transférées au compte lors de la création du compte. Les rôles administrateur ne sont jamais attribuables depuis le formulaire public et doivent être provisionnés par une procédure réservée à l'exploitation. Les sessions durent 30 jours. La vérification d'adresse e-mail et la récupération autonome de mot de passe restent à mettre en place avant une ouverture à grande échelle.
+
+Le profil pédagogique enregistre le pays, l'établissement, la filière, le niveau et le rôle. Le premier catalogue propose une taxonomie évolutive, avec un démarrage au Togo et des domaines universitaires transversaux. Les établissements et matières listés sont des points de départ de navigation, pas une déclaration d'exhaustivité ni des maquettes officielles validées. Les contenus réglementaires et les programmes officiels devront être accompagnés de références institutionnelles et d'une date de vérification avant d'être signalés comme officiels.
+
+Mentora reçoit le contexte académique du compte et utilise un niveau de raisonnement renforcé, une consigne de vérification des calculs et de relecture linguistique, ainsi que des règles explicites contre l'invention de références et de faits. Cela réduit les erreurs attendues sans garantir l'absence totale d'erreurs ; les réponses doivent rester vérifiées par les supports pédagogiques et les sources officielles.
+
+Les tests automatisés sont lancés avec `npm test`. Le workflow GitHub Actions vérifie les tests et la compilation de production à chaque push sur `main`.
