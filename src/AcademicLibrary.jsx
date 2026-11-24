@@ -28,6 +28,7 @@ export default function AcademicLibrary({profile}){
   try{await api('/api/library',{method:'POST',body:JSON.stringify(form)});setForm(initialForm(profile));setNotice('Votre ressource a été envoyée à la modération. Elle sera visible après validation.');await load();}
   catch(e){setError(e.message)}finally{setBusy(false)}
  }
+ async function showAll(){const empty={country:'',institution:'',field:'',level:'',subject:'',q:''};setFilters(empty);setBusy(true);try{const result=await api('/api/library');setItems(result.items||[])}catch(e){setError(e.message)}finally{setBusy(false)}}
  async function review(item,decision,verifiedOfficial=false){
   setBusy(true);setError('');
   try{await api('/api/library/'+item.id+'/review',{method:'PATCH',body:JSON.stringify({decision,verifiedOfficial,note:''})});await load();setNotice(decision==='approved'?'Ressource publiée.':'Ressource refusée.');}
@@ -49,7 +50,7 @@ export default function AcademicLibrary({profile}){
    </div>
    <button className="primary" disabled={busy}><Search size={16}/> Rechercher</button>
   </form>
-  <div className="library-results-head"><h3><BookOpen size={19}/> Ressources disponibles <span>{items.length}</span></h3><button className="text-link" disabled={busy} onClick={()=>{setFilters({country:'',institution:'',field:'',level:'',subject:'',q:''});setTimeout(()=>search(),0)}}><RefreshCw size={14}/> Tout afficher</button></div>
+  <div className="library-results-head"><h3><BookOpen size={19}/> Ressources disponibles <span>{items.length}</span></h3><button className="text-link" disabled={busy} onClick={showAll}><RefreshCw size={14}/> Tout afficher</button></div>
   {items.length?<div className="library-grid">{items.map(item=><article className="library-card learn-panel" key={item.id}>
    <div className="library-card-top"><span>{countries.find(x=>x.id===item.country)?.label||item.country}</span>{item.verifiedOfficial&&<small><ShieldCheck size={13}/> Source officielle vérifiée</small>}</div>
    <h3>{item.title}</h3><p>{item.summary}</p>
@@ -78,7 +79,7 @@ export default function AcademicLibrary({profile}){
     <button className="primary" disabled={busy}><Send size={16}/> Envoyer à la modération</button>
    </form>
   </section>}
-  {user?.role==='admin'&&<section className="library-moderation"><div className="library-results-head"><h3><ShieldCheck size={19}/> Modération des ressources</h3><span>{mine.filter(x=>x.status==='pending').length} en attente</span></div>
+  {user?.role==='admin'&&<section className="library-moderation"><div className="library-results-head"><h3><ShieldCheck size={19}/> Modération des ressources</h3><span>{mine.filter(x=>x.status==='pending').length} en attente</span></div><p className="learn-note">N’utilisez « source vérifiée » qu’après avoir consulté et contrôlé vous-même le document référencé. L’adresse fournie seule ne prouve pas son caractère officiel.</p>
    {mine.filter(x=>x.status==='pending').map(item=><article className="learn-panel moderation-card" key={item.id}><h3>{item.title}</h3><p>{item.summary}</p><small>{item.institution} · {item.subject} · {item.authorName}</small><p className="learn-note">{item.sourceUrl||'Aucune adresse de source fournie'} · {item.sourceType}</p><div className="learn-actions"><button className="primary" disabled={busy} onClick={()=>review(item,'approved',false)}><CheckCircle2 size={15}/> Approuver</button><button className="secondary" disabled={busy} onClick={()=>review(item,'rejected')} >Refuser</button>{item.sourceUrl&&<button className="secondary" disabled={busy} onClick={()=>review(item,'approved',true)}><ShieldCheck size={15}/> Approuver + source vérifiée</button>}</div></article>)}
    {!mine.some(x=>x.status==='pending')&&<p className="learn-note">Aucune ressource en attente de validation.</p>}
   </section>}
