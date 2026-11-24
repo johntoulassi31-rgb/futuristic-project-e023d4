@@ -23,7 +23,7 @@ Mentora accepte un cours collé ou un fichier `.txt` (30 à 24 000 caractères).
 
 L’Académie propose cinq cours de finance et gestion avec exercices corrigés. La fin de lecture est déclarée par la personne : elle valide la compétence associée dans les parcours analyste financier, comptable ou contrôleur de gestion. Ces validations sont pédagogiques et ne sont pas des certifications. L’accueil montre la progression du métier sélectionné. Le bouton d’ajout au portfolio enregistre un instantané du parcours ; un nouvel ajout actualise cet instantané. Une exportation texte est disponible.
 
-Les cours, réponses, quiz, trente derniers scores par cours, vingt derniers échanges, progression et portfolio sont stockés dans Netlify Database, filtrés par propriétaire. Ils ne sont pas stockés dans localStorage. Le cookie d’espace existant est conservé pour préserver l’accès aux anciens projets. Aucun compte ni communauté partagée n’a été ajouté. La nouvelle migration est appliquée par la plateforme au déploiement.
+Les cours privés, réponses, quiz, trente derniers scores par cours, vingt derniers échanges, progression et portfolio sont stockés dans Netlify Database, filtrés par propriétaire. Ils ne sont pas stockés dans localStorage. Le cookie d’espace existant est conservé pour préserver l’accès aux anciens projets. La bibliothèque universitaire partagée utilise une table séparée : elle ne rend jamais publics les cours privés importés dans Mentora. La migration correspondante est appliquée par la plateforme au déploiement.
 
 Les tests de routes avec base et IA simulées se lancent avec `node --experimental-vm-modules --test tests/learning.test.mjs`.
 
