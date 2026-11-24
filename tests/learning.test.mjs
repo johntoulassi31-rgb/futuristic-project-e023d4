@@ -9,8 +9,8 @@ import {countries,studyFields,studyLevels} from '../shared/curriculum.js';
 
 // Isolate route behavior from infrastructure: no database writes or provider calls.
 async function harness(){
- const courseTable={name:'courses',id:'id',owner:'owner',createdAt:'createdAt'},spaceTable={name:'spaces',owner:'owner',career:'career'};
- const rows={courses:[],spaces:[]};let nextId=0;
+ const courseTable={name:'courses',id:'id',owner:'owner',createdAt:'createdAt'},spaceTable={name:'spaces',owner:'owner',career:'career'},resourceTable={name:'academic_resources',id:'id',authorId:'authorId',status:'status',country:'country',institution:'institution',field:'field',level:'level',subject:'subject',createdAt:'createdAt'};
+ const rows={courses:[],spaces:[],academic_resources:[]};let nextId=0;
  const match=(r,p)=>!p||p(r);
  const db={
   select(){let table,predicate;const q={from(t){table=t;return q},where(p){predicate=p;return q},orderBy(){return q},limit(){return q},for(){return q},then(ok,no){return Promise.resolve(structuredClone(rows[table.name].filter(r=>match(r,predicate)))).then(ok,no)}};return q},
@@ -22,12 +22,12 @@ async function harness(){
  class OpenAI {constructor(){this.chat={completions:{create:async()=>({choices:[{message:{content:JSON.stringify(invalidAI?{quiz:[{question:'invalide'}]}:{text:'Une réponse pédagogique.',quiz:Array.from({length:5},(_,i)=>({question:`Question ${i+1}`,options:['A','B','C','D'],answer:i%4,explanation:'Voici la correction.'}))})}}]})}}}}
  const bindings={
   'drizzle-orm':{eq:(field,value)=>row=>row[field]===value,and:(...ps)=>row=>ps.every(p=>p(row)),desc:x=>x},
-  'hono/streaming':{stream},openai:{default:OpenAI},'../../db/index.ts':{db},'../../db/schema.ts':{courses:courseTable,learningSpaces:spaceTable},'../../shared/academy.js':{academy,careers},'../../shared/curriculum.js':{countries,studyFields,studyLevels},
+  'hono/streaming':{stream},openai:{default:OpenAI},'../../db/index.ts':{db},'../../db/schema.ts':{courses:courseTable,learningSpaces:spaceTable,academicResources:resourceTable},'../../shared/academy.js':{academy,careers},'../../shared/curriculum.js':{countries,studyFields,studyLevels},
  };
  const context=vm.createContext({console,Date,Set,JSON,Error,Number,Object,Array});
  const module=new vm.SourceTextModule(await readFile(new URL('../netlify/server/learning.mjs',import.meta.url),'utf8'),{context});
  await module.link(name=>{const values=bindings[name];assert.ok(values,`Import inattendu : ${name}`);return new vm.SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value)},{context})});await module.evaluate();
- const app=new Hono();app.use('/api/*',async(c,next)=>{c.set('owner',c.req.header('x-test-owner')||'alice');await next()});module.namespace.registerLearning(app);
+ const app=new Hono();app.use('/api/*',async(c,next)=>{const owner=c.req.header('x-test-owner')||'alice';const role=c.req.header('x-test-role');c.set('owner',owner);c.set('user',role?{id:owner+'-id',displayName:'Utilisateur test',role}:null);await next()});module.namespace.registerLearning(app);
  async function call(path,body,owner='alice',method=body===undefined?'GET':'POST'){
   const r=await app.request(path,{method,headers:{'Content-Type':'application/json','x-test-owner':owner},...(body===undefined?{}:{body:JSON.stringify(body)})});
   const text=await r.text();const payload=r.headers.get('content-type')?.includes('ndjson')?JSON.parse(text.trim().split('\n').at(-1)):JSON.parse(text);return {status:r.status,payload};
@@ -82,4 +82,27 @@ test('Profil académique : validation, persistance et isolation',async()=>{
  assert.equal((await call('/api/learning')).payload.space.profile.level,'licence-2');
  assert.equal((await call('/api/learning/profile',{...profile,level:'niveau-inventé'},'alice','PATCH')).status,400);
  assert.equal((await call('/api/learning',undefined,'bob')).payload.space.profile.level,'licence-1');
+});
+
+test('Bibliothèque partagée : accès enseignant, filtres de visibilité et modération admin',async()=>{
+ const {call,rows}=await harness();
+ const draft={title:'Introduction à la comptabilité',summary:'Les bases des écritures comptables.',content:'La comptabilité enregistre les opérations qui affectent le patrimoine de l’entreprise. Chaque opération est analysée selon le principe de la partie double.',country:'TG',institution:'Université de Lomé',field:'gestion-marketing',level:'licence-1',subject:'Comptabilité générale',sourceType:'enseignant',sourceUrl:'https://example.edu/cours'};
+ assert.equal((await call('/api/library',draft,'student','POST','student')).status,403);
+ assert.equal((await call('/api/library',draft,'teacher','POST','teacher')).status,201);
+ assert.equal(rows.academic_resources[0].status,'pending');
+ assert.equal((await call('/api/library',undefined,'student')).payload.items.length,0);
+ assert.equal((await call('/api/library/manage',undefined,'teacher','GET','teacher')).payload.items.length,1);
+ assert.equal((await call('/api/library/'+rows.academic_resources[0].id+'/review',{decision:'approved'},'teacher','PATCH','teacher')).status,403);
+ const adminList=await call('/api/library/manage',undefined,'admin','GET','admin');
+ assert.equal(adminList.payload.items.length,1);
+ const approved=await call('/api/library/'+rows.academic_resources[0].id+'/review',{decision:'approved',verifiedOfficial:false},'admin','PATCH','admin');
+ assert.equal(approved.status,200);assert.equal(approved.payload.status,'published');assert.equal(approved.payload.verifiedOfficial,false);
+ const visible=await call('/api/library?country=TG&level=licence-1',undefined,'student');
+ assert.equal(visible.payload.items.length,1);assert.equal(visible.payload.items[0].authorId,undefined);
+ assert.equal((await call('/api/library?field=informatique-numerique',undefined,'student')).payload.items.length,0);
+ const verified=await call('/api/library/'+rows.academic_resources[0].id+'/review',{decision:'approved',verifiedOfficial:true},'admin','PATCH','admin');
+ assert.equal(verified.payload.verifiedOfficial,true);
+ assert.equal((await call('/api/library', {...draft,title:'Lien incorrect',sourceUrl:'javascript:alert(1)'},'teacher','POST','teacher')).status,400);
+ const rejected=await call('/api/library/'+rows.academic_resources[0].id+'/review',{decision:'rejected',note:'Source à revoir.'},'admin','PATCH','admin');
+ assert.equal(rejected.payload.status,'rejected');assert.equal((await call('/api/library',undefined,'student')).payload.items.length,0);
 });
