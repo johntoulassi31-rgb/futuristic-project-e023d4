@@ -2,12 +2,19 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {BookOpen,Search,Send,ShieldCheck,CheckCircle2,Clock3,FileText,ExternalLink,RefreshCw} from 'lucide-react';
 import {countries,studyFields,studyLevels} from '../shared/curriculum.js';
 
-async function api(path,options={}){
- const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
- const data=await response.json().catch(()=>({}));
- if(!response.ok)throw Error(data.error||'Action impossible. Réessayez.');
- return data;
+import {api} from './lib/api.js';
+import {supabase} from './lib/supabase.js';
+const mapResource=item=>({...item,authorId:item.author_id,authorName:item.author_name,sourceType:item.source_type,sourceUrl:item.source_url,verifiedOfficial:item.verified_official,reviewNote:item.review_note,createdAt:item.created_at});
+async function publicResources(filters){
+ let query=supabase.from('academic_resources').select('*').eq('status','published').order('created_at',{ascending:false}).limit(200);
+ for(const key of ['country','institution','field','level','subject'])if(filters[key])query=query.eq(key,filters[key]);
+ const {data,error}=await query;if(error)throw error;
+ let rows=(data||[]).map(mapResource);
+ const term=(filters.q||'').trim().toLocaleLowerCase('fr');
+ if(term)rows=rows.filter(x=>[x.title,x.summary,x.content,x.subject,x.authorName].some(v=>(v||'').toLocaleLowerCase('fr').includes(term)));
+ return rows;
 }
+
 const initialForm=(profile={})=>({title:'',summary:'',content:'',country:profile.country||'TG',institution:profile.customInstitution||profile.institution||'Université de Lomé',field:profile.field||'gestion-marketing',level:profile.level||'licence-1',subject:'',sourceType:'enseignant',sourceUrl:''});
 export default function AcademicLibrary({profile}){
  const [user,setUser]=useState(null),[items,setItems]=useState([]),[mine,setMine]=useState([]),[form,setForm]=useState(()=>initialForm(profile)),[filters,setFilters]=useState(()=>({country:profile?.country||'TG',institution:'',field:profile?.field||'',level:profile?.level||'',subject:'',q:''})),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[expanded,setExpanded]=useState('');
@@ -15,23 +22,25 @@ export default function AcademicLibrary({profile}){
  async function load(){
   setError('');
   try{
-   const me=await api('/api/auth/me');setUser(me.user);
-   const params=new URLSearchParams(Object.entries(filters).filter(([,v])=>v).map(([k,v])=>[k,v]));
-   const result=await api('/api/library?'+params.toString());setItems(result.items||[]);
-   if(me.user&&['teacher','admin'].includes(me.user.role)){const managed=await api('/api/library/manage');setMine(managed.items||[]);}else setMine([]);
+   const {data:{user:authUser}}=await supabase.auth.getUser();
+   let role=null;
+   if(authUser){const {data:profile}=await supabase.from('profiles').select('role').eq('id',authUser.id).maybeSingle();role=profile?.role||null;}
+   setUser(authUser?{...authUser,role}:null);
+   setItems(await publicResources(filters));
+   if(authUser&&['teacher','admin'].includes(role)){const managed=await api('/api/library/manage');setMine((managed.items||[]).map(mapResource));}else setMine([]);
   }catch(e){setError(e.message)}
  }
  useEffect(()=>{load()},[]);
- async function search(e){e?.preventDefault();setBusy(true);try{const params=new URLSearchParams(Object.entries(filters).filter(([,v])=>v).map(([k,v])=>[k,v]));const result=await api('/api/library?'+params.toString());setItems(result.items||[]);}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function search(e){e?.preventDefault();setBusy(true);try{setItems(await publicResources(filters));}catch(e){setError(e.message)}finally{setBusy(false)}}
  async function submit(e){
   e.preventDefault();setBusy(true);setError('');setNotice('');
-  try{await api('/api/library',{method:'POST',body:JSON.stringify(form)});setForm(initialForm(profile));setNotice('Votre ressource a été envoyée à la modération. Elle sera visible après validation.');await load();}
+  try{await api('/api/library','POST',form);setForm(initialForm(profile));setNotice('Votre ressource a été envoyée à la modération. Elle sera visible après validation.');await load();}
   catch(e){setError(e.message)}finally{setBusy(false)}
  }
- async function showAll(){const empty={country:'',institution:'',field:'',level:'',subject:'',q:''};setFilters(empty);setBusy(true);try{const result=await api('/api/library');setItems(result.items||[])}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function showAll(){const empty={country:'',institution:'',field:'',level:'',subject:'',q:''};setFilters(empty);setBusy(true);try{setItems(await publicResources({country:'',institution:'',field:'',level:'',subject:'',q:''}))}catch(e){setError(e.message)}finally{setBusy(false)}}
  async function review(item,decision,verifiedOfficial=false){
   setBusy(true);setError('');
-  try{await api('/api/library/'+item.id+'/review',{method:'PATCH',body:JSON.stringify({decision,verifiedOfficial,note:''})});await load();setNotice(decision==='approved'?'Ressource publiée.':'Ressource refusée.');}
+  try{await api('/api/library/'+item.id+'/review','PATCH',{decision,verifiedOfficial,note:''});await load();setNotice(decision==='approved'?'Ressource publiée.':'Ressource refusée.');}
   catch(e){setError(e.message)}finally{setBusy(false)}
  }
  const statusLabel={pending:'En attente',published:'Publiée',rejected:'Refusée'};
