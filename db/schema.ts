@@ -29,6 +29,27 @@ export const courses = pgTable('courses', {
  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const academicResources = pgTable('academic_resources', {
+ id: uuid().defaultRandom().primaryKey(),
+ authorId: uuid('author_id').notNull().references(()=>users.id,{onDelete:'cascade'}),
+ authorName: text('author_name').notNull(),
+ title: text().notNull(),
+ summary: text().notNull(),
+ content: text().notNull(),
+ country: text().notNull(),
+ institution: text().notNull(),
+ field: text().notNull(),
+ level: text().notNull(),
+ subject: text().notNull(),
+ sourceType: text('source_type').notNull().default('enseignant'),
+ sourceUrl: text('source_url'),
+ status: text().notNull().default('pending'),
+ verifiedOfficial: text('verified_official').notNull().default('false'),
+ reviewNote: text('review_note'),
+ createdAt: timestamp('created_at').defaultNow().notNull(),
+ reviewedAt: timestamp('reviewed_at'),
+});
+
 export const users = pgTable('users', {
  id: uuid().defaultRandom().primaryKey(),
  email: text().notNull(),
