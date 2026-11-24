@@ -16,7 +16,7 @@ export default function LearningProfile({profile,onSaved}){
   <div className="panel-heading"><GraduationCap size={21}/><div><h3>Mon parcours d’études</h3><p>Personnalisez les cours et les réponses de Mentora selon votre situation.</p></div></div>
   <form onSubmit={save}>
    <div className="profile-grid">
-    <label>Votre profil<select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))}><option value="student">Étudiant</option><option value="teacher">Enseignant</option>{form.role==='admin'&&<option value="admin">Administrateur</option>}</select></label>
+    <label>Votre profil<input value={form.role==='teacher'?'Enseignant':form.role==='admin'?'Administrateur':'Étudiant'} readOnly disabled/></label>
     <label>Pays<select value={form.country} onChange={e=>changeCountry(e.target.value)}>{countries.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select></label>
     <label>Université / établissement<select value={form.institution} onChange={e=>setForm(f=>({...f,institution:e.target.value,customInstitution:''}))}>{country.institutions.map(x=><option key={x}>{x}</option>)}</select></label>
     {form.institution==='Autre établissement'&&<label>Nom de l’établissement<input maxLength={160} value={form.customInstitution||''} onChange={e=>setForm(f=>({...f,customInstitution:e.target.value}))} placeholder="Saisissez le nom de votre établissement"/></label>}
