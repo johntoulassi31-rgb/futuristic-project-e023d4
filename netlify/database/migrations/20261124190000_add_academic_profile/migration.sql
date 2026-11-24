@@ -1,0 +1,1 @@
+ALTER TABLE "learning_spaces" ADD COLUMN "profile" jsonb DEFAULT '{"country":"TG","institution":"Université de Lomé","field":"gestion-marketing","level":"licence-1","role":"student"}'::jsonb NOT NULL;
