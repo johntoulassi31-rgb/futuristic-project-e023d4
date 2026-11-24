@@ -15,7 +15,7 @@ export const learningSpaces = pgTable('learning_spaces', {
  completed: jsonb().$type<string[]>().notNull().default([]),
  portfolio: jsonb().$type<{career:string;completed:string[];date:string}[]>().notNull().default([]),
  day: text().notNull().default(''),
- profile: jsonb().$type<{country:string;institution:string;field:string;level:string;role:'student'|'teacher';customInstitution?:string}>().notNull().default({country:'TG',institution:'Université de Lomé',field:'gestion-marketing',level:'licence-1',role:'student'}),
+ profile: jsonb().$type<{country:string;institution:string;field:string;level:string;role:'student'|'teacher'|'admin';customInstitution?:string}>().notNull().default({country:'TG',institution:'Université de Lomé',field:'gestion-marketing',level:'licence-1',role:'student'}),
 });
 export const courses = pgTable('courses', {
  id: uuid().defaultRandom().primaryKey(),
