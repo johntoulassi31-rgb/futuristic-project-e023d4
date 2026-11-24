@@ -30,7 +30,7 @@ export default function AcademicLibrary({profile}){
    if(authUser&&['teacher','admin'].includes(role)){const managed=await api('/api/library/manage');setMine((managed.items||[]).map(mapResource));}else setMine([]);
   }catch(e){setError(e.message)}
  }
- useEffect(()=>{load()},[]);
+ useEffect(()=>{load();const refresh=()=>load();window.addEventListener('mentoratplus-auth-changed',refresh);return()=>window.removeEventListener('mentoratplus-auth-changed',refresh)},[]);
  async function search(e){e?.preventDefault();setBusy(true);try{setItems(await publicResources(filters));}catch(e){setError(e.message)}finally{setBusy(false)}}
  async function submit(e){
   e.preventDefault();setBusy(true);setError('');setNotice('');
