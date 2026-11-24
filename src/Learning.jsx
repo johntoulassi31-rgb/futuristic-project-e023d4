@@ -3,8 +3,8 @@ import {ArrowRight,BookOpen,Check,Sparkles,Upload,Target,Briefcase,GraduationCap
 import {academy,careers,careerProgress} from '../shared/academy.js';
 import LearningProfile from './LearningProfile.jsx';
 import AcademicLibrary from './AcademicLibrary.jsx';
-export const learningPages={mentora:'Mentora',quiz:'Quiz',academy:'Académie',career:'Jumeau de carrière',portfolio:'Portfolio',library:'Bibliothèque'};
 import {api} from './lib/api.js';
+export const learningPages={mentora:'Mentora',quiz:'Quiz',academy:'Académie',career:'Jumeau de carrière',portfolio:'Portfolio',library:'Bibliothèque'};
 async function request(path,body,method='POST'){return api(path,method,body);}
 
 export default function Learning({page,navigate}){
