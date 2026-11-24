@@ -26,3 +26,19 @@ L’Académie propose cinq cours de finance et gestion avec exercices corrigés.
 Les cours, réponses, quiz, trente derniers scores par cours, vingt derniers échanges, progression et portfolio sont stockés dans Netlify Database, filtrés par propriétaire. Ils ne sont pas stockés dans localStorage. Le cookie d’espace existant est conservé pour préserver l’accès aux anciens projets. Aucun compte ni communauté partagée n’a été ajouté. La nouvelle migration est appliquée par la plateforme au déploiement.
 
 Les tests de routes avec base et IA simulées se lancent avec `node --experimental-vm-modules --test tests/learning.test.mjs`.
+
+
+## Application Android (APK et AAB)
+
+Le projet Android est préparé automatiquement par GitHub Actions depuis Capacitor. Depuis l'onglet **Actions**, lancer le workflow **Build Android APK and AAB** (ou attendre son déclenchement après une modification concernée). Les fichiers générés sont disponibles dans les artefacts du workflow pendant 30 jours.
+
+Le workflow produit toujours un APK de test. Pour obtenir les fichiers de version signés destinés à la distribution, configurer dans **Settings → Secrets and variables → Actions** les quatre secrets suivants :
+
+- `ANDROID_KEYSTORE_BASE64` : contenu Base64 du fichier keystore de publication.
+- `ANDROID_KEYSTORE_PASSWORD` : mot de passe du keystore.
+- `ANDROID_KEY_ALIAS` : alias de la clé.
+- `ANDROID_KEY_PASSWORD` : mot de passe de la clé.
+
+Conserver une copie hors ligne et sécurisée du keystore. La même clé doit être réutilisée pour toutes les mises à jour de l'application. Ne jamais ajouter le keystore ni ses mots de passe au dépôt.
+
+**Important :** la configuration Capacitor actuelle ouvre le site Netlify distant afin de conserver les routes API et le cookie sécurisé existants. L'application nécessite donc une connexion Internet. Le workflow construit l'enveloppe Android ; il ne transforme pas encore le backend Netlify en backend Supabase et ne rend pas l'application utilisable hors ligne.
