@@ -1,0 +1,108 @@
+name: Build Android APK and AAB
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - 'src/**'
+      - 'public/**'
+      - '.github/workflows/android-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Build Mentoratplus for Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Refresh npm lockfile for Capacitor dependencies
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web application
+        run: npm run build
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Generate native Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Build debug APK and release packages
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
+
+      - name: Sign release APK and AAB when signing secrets are configured
+        if: env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEYSTORE_PASSWORD != '' && env.ANDROID_KEY_ALIAS != '' && env.ANDROID_KEY_PASSWORD != ''
+        run: |
+          set -euo pipefail
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/mentoratplus-release.jks"
+          ZIPALIGN="$ANDROID_HOME/build-tools/36.0.0/zipalign"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          mkdir -p artifacts
+          "$ZIPALIGN" -f -v 4 android/app/build/outputs/apk/release/app-release-unsigned.apk artifacts/Mentoratplus-release-unsigned-aligned.apk
+          "$APKSIGNER" sign --ks "$RUNNER_TEMP/mentoratplus-release.jks" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD --out artifacts/Mentoratplus-release.apk artifacts/Mentoratplus-release-unsigned-aligned.apk
+          "$APKSIGNER" verify --verbose artifacts/Mentoratplus-release.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/Mentoratplus-release-unsigned.aab"
+          jarsigner -keystore "$RUNNER_TEMP/mentoratplus-release.jks" -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -signedjar artifacts/Mentoratplus-release.aab "$RUNNER_TEMP/Mentoratplus-release-unsigned.aab" "$ANDROID_KEY_ALIAS"
+          jarsigner -verify -verbose -certs artifacts/Mentoratplus-release.aab
+          rm -f artifacts/Mentoratplus-release-unsigned-aligned.apk "$RUNNER_TEMP/Mentoratplus-release-unsigned.aab" "$RUNNER_TEMP/mentoratplus-release.jks"
+
+      - name: Collect unsigned release packages when no signing key is configured
+        if: env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEYSTORE_PASSWORD == '' || env.ANDROID_KEY_ALIAS == '' || env.ANDROID_KEY_PASSWORD == ''
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk artifacts/Mentoratplus-release-unsigned.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab artifacts/Mentoratplus-release-unsigned.aab
+
+      - name: Collect debug APK
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Mentoratplus-debug.apk
+
+      - name: Upload APK and AAB files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mentoratplus-android-${{ github.run_number }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
