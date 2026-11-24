@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, jsonb, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, jsonb, timestamp, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
 export const projects = pgTable('projects', {
  id: uuid().defaultRandom().primaryKey(),
  owner: text().notNull(),
@@ -44,7 +44,7 @@ export const academicResources = pgTable('academic_resources', {
  sourceType: text('source_type').notNull().default('enseignant'),
  sourceUrl: text('source_url'),
  status: text().notNull().default('pending'),
- verifiedOfficial: text('verified_official').notNull().default('false'),
+ verifiedOfficial: boolean('verified_official').notNull().default(false),
  reviewNote: text('review_note'),
  createdAt: timestamp('created_at').defaultNow().notNull(),
  reviewedAt: timestamp('reviewed_at'),
