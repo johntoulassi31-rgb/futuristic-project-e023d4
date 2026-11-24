@@ -10,3 +10,17 @@
 @media(max-width:1150px){.brand{font-size:19px}.brand-icon{width:30px;height:30px}.learn-columns{grid-template-columns:1fr}.career-choices>button{padding:17px}.career-choices b{font-size:13px}.career-overview{flex-wrap:wrap}.academy-layout{grid-template-columns:1fr}.lesson-list{display:grid;grid-template-columns:1fr 1fr}.learn-panel{padding:23px}}
 @media(max-width:760px){.sidebar .brand{font-size:23px}.career-choices{grid-template-columns:1fr}.career-choices>button{display:grid;grid-template-columns:30px 1fr;gap:12px}.career-choices span{grid-column:2}.career-overview{padding:20px}.career-overview>div:nth-child(2){flex-basis:calc(100% - 90px)}.career-overview h2{font-size:18px}.learn-intro{padding-top:10px}.lesson-list{grid-template-columns:1fr}.learn-panel{padding:20px}.career-total strong{font-size:32px}.learn-intro h2{font-size:31px}.learning-privacy{font-size:11px}}
 .sidebar .brand{padding-left:0;padding-right:0}.sidebar>nav,.sidebar-bottom{flex-shrink:0}.brand-icon svg{width:30px;height:30px}
+
+.academic-profile{margin:0 0 22px;border-color:#ded9e9;background:linear-gradient(135deg,#fff 0%,#f8f7fb 100%)}
+.academic-profile .panel-heading{align-items:flex-start;gap:14px;color:#8979a2}
+.academic-profile .panel-heading h3{margin:0;color:#49415c;font-size:16px}
+.academic-profile .panel-heading p{margin:6px 0 0;color:#847b91;font-size:12px;line-height:1.6}
+.profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.profile-grid label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:600;color:#625970}
+.profile-grid input,.profile-grid select{width:100%;min-width:0;padding:12px;border:1px solid #e2deea;border-radius:7px;background:#fff;color:#514960;font:inherit;font-size:12px}
+.profile-subjects{padding:15px;background:#f1eff6;border-radius:9px;margin:14px 0 18px}
+.profile-subjects>span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#6f6384}
+.profile-subjects>div{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.profile-subjects small{padding:6px 9px;border-radius:20px;background:#fff;border:1px solid #e4dfed;color:#786d89;font-size:10px}
+.academic-profile .primary{display:inline-flex;align-items:center;gap:9px}
+@media(max-width:600px){.profile-grid{grid-template-columns:1fr}.academic-profile{padding:18px}}
