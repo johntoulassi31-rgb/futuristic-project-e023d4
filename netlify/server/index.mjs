@@ -7,16 +7,18 @@ import OpenAI from 'openai';
 import { db } from '../../db/index.ts';
 import { projects } from '../../db/schema.ts';
 import { registerLearning } from './learning.mjs';
+import { registerAuth, resolveUser } from './auth.mjs';
 const app = new Hono();
 app.use('/api/*', bodyLimit({maxSize:150000,onError:c=>c.json({error:'Le document transmis est trop volumineux.'},413)}));
 const publicProject = ({ owner, ...project }) => project;
 app.use('/api/*', async (c, next) => {
  c.header('Cache-Control', 'no-store');
  if (!['GET','HEAD'].includes(c.req.method) && c.req.header('origin') !== new URL(c.req.url).origin) return c.json({error:'Origine non autorisée.'},403);
- let owner = getCookie(c, 'orbia_workspace');
- if (!owner || !/^[a-f0-9-]{36}$/.test(owner)) { owner = crypto.randomUUID(); setCookie(c,'orbia_workspace',owner,{httpOnly:true,secure:true,sameSite:'Lax',path:'/',maxAge:31536000}); }
- c.set('owner',owner); await next();
+ let guestOwner = getCookie(c, 'orbia_workspace');
+ if (!guestOwner || !/^[a-f0-9-]{36}$/.test(guestOwner)) { guestOwner = crypto.randomUUID(); setCookie(c,'orbia_workspace',guestOwner,{httpOnly:true,secure:true,sameSite:'Lax',path:'/',maxAge:31536000}); }
+ const user=await resolveUser(c);c.set('guestOwner',guestOwner);c.set('user',user);c.set('owner',user?`user:${user.id}`:guestOwner); await next();
 });
+registerAuth(app);
 app.get('/api/projects',async c => c.json((await db.select().from(projects).where(eq(projects.owner,c.get('owner'))).orderBy(desc(projects.createdAt)).limit(100)).map(publicProject)));
 app.post('/api/projects',async c => {
  let body; try { body=await c.req.json(); } catch {return c.json({error:'Données invalides.'},400);}
