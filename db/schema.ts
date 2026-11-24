@@ -29,6 +29,23 @@ export const courses = pgTable('courses', {
  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const users = pgTable('users', {
+ id: uuid().defaultRandom().primaryKey(),
+ email: text().notNull(),
+ passwordHash: text('password_hash').notNull(),
+ displayName: text('display_name').notNull(),
+ role: text().notNull(),
+ createdAt: timestamp('created_at').defaultNow().notNull(),
+}, table => [uniqueIndex('users_email_unique').on(table.email)]);
+export const sessions = pgTable('sessions', {
+ id: uuid().defaultRandom().primaryKey(),
+ userId: uuid('user_id').notNull().references(()=>users.id,{onDelete:'cascade'}),
+ tokenHash: text('token_hash').notNull(),
+ expiresAt: timestamp('expires_at').notNull(),
+ createdAt: timestamp('created_at').defaultNow().notNull(),
+}, table => [uniqueIndex('sessions_token_hash_unique').on(table.tokenHash)]);
+
+
 export const academicResources = pgTable('academic_resources', {
  id: uuid().defaultRandom().primaryKey(),
  authorId: uuid('author_id').notNull().references(()=>users.id,{onDelete:'cascade'}),
@@ -49,19 +66,3 @@ export const academicResources = pgTable('academic_resources', {
  createdAt: timestamp('created_at').defaultNow().notNull(),
  reviewedAt: timestamp('reviewed_at'),
 });
-
-export const users = pgTable('users', {
- id: uuid().defaultRandom().primaryKey(),
- email: text().notNull(),
- passwordHash: text('password_hash').notNull(),
- displayName: text('display_name').notNull(),
- role: text().notNull(),
- createdAt: timestamp('created_at').defaultNow().notNull(),
-}, table => [uniqueIndex('users_email_unique').on(table.email)]);
-export const sessions = pgTable('sessions', {
- id: uuid().defaultRandom().primaryKey(),
- userId: uuid('user_id').notNull().references(()=>users.id,{onDelete:'cascade'}),
- tokenHash: text('token_hash').notNull(),
- expiresAt: timestamp('expires_at').notNull(),
- createdAt: timestamp('created_at').defaultNow().notNull(),
-}, table => [uniqueIndex('sessions_token_hash_unique').on(table.tokenHash)]);
