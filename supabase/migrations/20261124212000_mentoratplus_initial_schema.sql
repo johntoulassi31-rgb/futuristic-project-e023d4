@@ -69,7 +69,6 @@ create table public.academic_resources (
 );
 create index academic_resources_status_created_idx on public.academic_resources(status,created_at desc);
 create index academic_resources_profile_idx on public.academic_resources(country,field,level,subject);
-create index academic_resources_author_created_idx on public.academic_resources(author_id,created_at desc);
 
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
@@ -92,8 +91,10 @@ grant select,insert,update,delete on public.courses to authenticated;
 create policy "Users manage own courses" on public.courses for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 grant select on public.academic_resources to anon,authenticated;
-create policy "Published resources and own submissions are visible" on public.academic_resources
-for select to anon,authenticated using (status='published' or (select auth.uid())=author_id);
+create policy "Anyone can view published academic resources" on public.academic_resources
+for select to anon,authenticated using (status='published');
+create policy "Authors can view own submissions" on public.academic_resources
+for select to authenticated using ((select auth.uid())=author_id);
 
 comment on table public.profiles is 'Mentoratplus user profile; role is assigned at signup and is not client-editable.';
 comment on table public.academic_resources is 'Shared academic library. Only server-side moderated submissions are published.';
