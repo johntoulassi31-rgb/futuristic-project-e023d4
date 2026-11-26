@@ -19,7 +19,7 @@ export default function AuthPanel(){
   e.preventDefault();setBusy(true);setError('');setNotice('');
   try{
    if(mode==='register'){
-    const {data,error}=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{display_name:name.trim(),role}}});
+    const {data,error}=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{display_name:name.trim(),role},emailRedirectTo:new URL(import.meta.env.BASE_URL,window.location.origin).toString()}});
     if(error)throw error;
     if(data.session){await refreshUser(data.user);setOpen(false);setPassword('');}
     else setNotice('Votre compte a été créé. Consultez votre boîte e-mail pour confirmer votre adresse avant de vous connecter.');
